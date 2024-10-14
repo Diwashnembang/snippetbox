@@ -9,10 +9,9 @@
       "server": "localhost",
       "port": 3306,
       "driver": "MySQL",
-      "name": "snippets",
+      "name": "WEB",
       "database": "snippetbox",
-      "username": "web",
-      "askForPassword": true
+      "username": "web"
     }
   ]
 }

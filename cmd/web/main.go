@@ -42,6 +42,7 @@ func main() {
 	sessionManager := scs.New()
 	sessionManager.Store = mysqlstore.New(db)
 	sessionManager.Lifetime = time.Hour * 12
+	sessionManager.Cookie.Secure = true
 
 	templateCache, err := newTemplateCache()
 	if err != nil {
@@ -66,7 +67,7 @@ func main() {
 		ErrorLog: errLog,
 		Handler:  app.routes(),
 	}
-	err = srv.ListenAndServe()
+	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
 	if err != nil {
 		errLog.Println("error listning to the port ", err)
 	}

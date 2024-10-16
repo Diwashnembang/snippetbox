@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"diwashnembang/snippetbox/internal/models"
 	"flag"
@@ -60,12 +61,19 @@ func main() {
 		formDecoder:    formDecoder,
 		sessionMangaer: sessionManager,
 	}
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+	}
 
 	infoLog.Printf("listeng server on port %s \n", *addr)
 	srv := &http.Server{
-		Addr:     *addr,
-		ErrorLog: errLog,
-		Handler:  app.routes(),
+		Addr:         *addr,
+		ErrorLog:     errLog,
+		Handler:      app.routes(),
+		TLSConfig:    tlsConfig,
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
 	if err != nil {

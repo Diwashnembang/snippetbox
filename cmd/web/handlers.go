@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(time.Second * 15)
+	app.infolog.Println("this is after sleep")
 	snippets, err := app.snippets.Latest()
 	if err != nil {
 		app.serverError(w, err)
@@ -37,7 +40,7 @@ func (app *application) sinppetView(w http.ResponseWriter, r *http.Request) {
 	}
 	data := app.newTemplateDate(r)
 	data.Snippet = snippet
-	data.Flash = app.sessionMangaer.PopString(r.Context(),"flash")
+	data.Flash = app.sessionMangaer.PopString(r.Context(), "flash")
 	app.render(w, http.StatusOK, "view.tmpl.html", data)
 }
 

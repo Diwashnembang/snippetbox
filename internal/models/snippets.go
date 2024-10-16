@@ -77,3 +77,15 @@ func (m *SnippetModel) Latest() ([]*Snippet, error) {
 	}
 	return snippet, nil
 }
+
+func (m *SnippetModel) InsertUsers(email string, password string) error {
+	stmt := `INSERT INTO users(email password),
+			VALUES(? ?);`
+
+	_, err := m.DB.Exec(stmt)
+	if err != nil {
+		return ErrInsert
+	}
+
+	return nil
+}

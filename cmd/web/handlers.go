@@ -7,14 +7,11 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	time.Sleep(time.Second * 15)
-	app.infolog.Println("this is after sleep")
 	snippets, err := app.snippets.Latest()
 	if err != nil {
 		app.serverError(w, err)
@@ -101,3 +98,44 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 
 	app.render(w, http.StatusOK, "create.tmpl.html", data)
 }
+
+func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
+
+	data := app.newTemplateDate(r)
+	app.render(w, http.StatusOK, "user.tmpl.html", data)
+}
+
+type newUserForm struct {
+	Email               string `form:"email"`
+	Password            string `form:"password"`
+	validator.Validator `form:"-"`
+}
+
+func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		app.errrlog.Println(err)
+		return
+	}
+	var form newUserForm
+	err = app.formDecoder.Decode(&form, r.PostForm)
+	if err != nil {
+		app.errrlog.Println(err)
+		return
+	}
+	form.CheckField(validator.IsStringEmpty(form.Email), "email", "email cannot be empty")
+	form.CheckField(validator.IsStringEmpty(form.Password), "password", "password cannot be empty")
+
+	if form.HasError() {
+		data := app.newTemplateDate(r)
+		data.Form = form
+		app.render(w, http.StatusBadRequest, "", data)
+	}
+
+	app.snippets.InsertUsers(form.Email, form.Password)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+
+}
+func (app *application) userLogin(w http.ResponseWriter, r *http.Request)      {}
+func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request)  {}
+func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {}

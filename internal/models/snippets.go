@@ -14,6 +14,12 @@ type Snippet struct {
 	Expire  time.Time
 }
 
+type Users struct {
+	Id       string
+	Email    string
+	Password string
+}
+
 type SnippetModel struct {
 	DB *sql.DB
 }
@@ -80,7 +86,7 @@ func (m *SnippetModel) Latest() ([]*Snippet, error) {
 
 func (m *SnippetModel) InsertUsers(email string, password string) error {
 	stmt := `INSERT INTO users(email password),
-			VALUES(? ?);`
+			VALUES(? ?)`
 
 	_, err := m.DB.Exec(stmt)
 	if err != nil {
@@ -88,4 +94,21 @@ func (m *SnippetModel) InsertUsers(email string, password string) error {
 	}
 
 	return nil
+}
+
+func (m *SnippetModel) FindUser(email string) (*Users, error) {
+	stmt := `SELECT * FROM users
+					WHERE email = ?`
+	row := m.DB.QueryRow(stmt, email)
+	user := &Users{}
+	err := row.Scan(user.Id, user.Email, user.Password)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNoRecord
+		} else {
+			return nil, err
+		}
+
+	}
+	return user, nil
 }

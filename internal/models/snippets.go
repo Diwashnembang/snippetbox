@@ -98,7 +98,7 @@ func (m *SnippetModel) InsertUsers(email string, password string) error {
 
 func (m *SnippetModel) FindUser(email string) (*Users, error) {
 	stmt := `SELECT * FROM users
-					WHERE email = ?`
+			 WHERE email = ?`
 	row := m.DB.QueryRow(stmt, email)
 	user := &Users{}
 	err := row.Scan(user.Id, user.Email, user.Password)

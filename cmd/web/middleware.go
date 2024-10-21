@@ -35,18 +35,3 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
-func (app *application) setStaticFileType(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		app.infolog.Println(r.URL.Path)
-		path := r.URL.Path[len("/static/"):]
-		app.infolog.Println(path)
-		// if path == ".css" {
-		// 	w.Header().Set("content-type", "text/css")
-		// }
-		// if path == ".js" {
-		// 	w.Header().Set("content-type", "text/css")
-		// }
-		next.ServeHTTP(w, r)
-	})
-}

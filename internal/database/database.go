@@ -12,7 +12,8 @@ var userStmt = `CREATE TABEL users(id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMEN
  name VARCHAR(255) NOT NULL,
  email VARCHAR(255) NOT NULL,
  hashed_password CHAR(60) NOT NULL,
- created DATETIME NOT NULL);ALTER TABLE users ADD CONSTRAINT users_uc_email UNIQUE (email);
+ created DATETIME NOT NULL);
+ ALTER TABLE users ADD CONSTRAINT users_uc_email UNIQUE (email);
 `
 
 func createTabel(db *sql.DB, stmt string) {

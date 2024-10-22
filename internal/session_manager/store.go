@@ -1,6 +1,9 @@
 package sessionmanager
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // Store is the interface for session stores.
 type Store interface {
@@ -21,3 +24,19 @@ type Store interface {
 	// expiry time should be overwritten.
 	Commit(token string, b []byte, expiry time.Time) (err error)
 }
+
+type memo struct {
+	session Session
+}
+
+func (s *memo) Delete(token string) (err error) {
+	if _,exists := s.session.Value[token];exists{
+
+		delete(s.session.Value,token)
+	}else{
+		return fmt.Errorf("token doesn't exists")
+	}
+	return 
+}
+
+

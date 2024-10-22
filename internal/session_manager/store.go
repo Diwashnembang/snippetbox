@@ -25,11 +25,11 @@ type Store interface {
 	Commit(token string, b []byte, expiry time.Time) (err error)
 }
 
-type memo struct {
+type memoSave struct {
 	session Session
 }
 
-func (s *memo) Delete(token string) (err error) {
+func (s *memoSave) Delete(token string) (err error) {
 	if _,exists := s.session.Value[token];exists{
 
 		delete(s.session.Value,token)
@@ -38,5 +38,7 @@ func (s *memo) Delete(token string) (err error) {
 	}
 	return 
 }
+
+
 
 

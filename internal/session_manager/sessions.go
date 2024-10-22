@@ -10,7 +10,7 @@ import (
 
 type Session struct {
 	Token       string 
-	Value map[string]any
+	Value map[string]string
 }
 // type contextKey string
 type SessionManager struct {

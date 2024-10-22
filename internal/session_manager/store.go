@@ -30,15 +30,23 @@ type memoSave struct {
 }
 
 func (s *memoSave) Delete(token string) (err error) {
-	if _,exists := s.session.Value[token];exists{
+	if _, exists := s.session.Value[token]; exists {
 
-		delete(s.session.Value,token)
-	}else{
+		delete(s.session.Value, token)
+	} else {
 		return fmt.Errorf("token doesn't exists")
 	}
-	return 
+	return
 }
 
+func (s *memoSave) Find(token string) (b []byte, found bool, err error) {
+	if value, exists := s.session.Value[token]; exists {
+		b = []byte(value)
+	}else{
+		err= fmt.Errorf("cannot find data")
+		return 
+	}
 
+	return b,true,nil
 
-
+}

@@ -25,14 +25,20 @@ type Store interface {
 	Commit(token string, b []byte, expiry time.Time) (err error)
 }
 
+type Data struct{
+	data []byte
+	expiry time.Time
+}
+
 type memoSave struct {
-	session Session
+	data Data
+
 }
 
 func (s *memoSave) Delete(token string) (err error) {
-	if _, exists := s.session.Value[token]; exists {
+	if _, exists := s.session[token]; exists {
 
-		delete(s.session.Value, token)
+		delete(s.session, token)
 	} else {
 		return fmt.Errorf("token doesn't exists")
 	}
@@ -48,5 +54,9 @@ func (s *memoSave) Find(token string) (b []byte, found bool, err error) {
 	}
 
 	return b,true,nil
+
+}
+
+func (s *memoSave) Commit(token string,b []byte,expiry time.Time)(err error){
 
 }

@@ -1,7 +1,8 @@
 package sessionmanager
 
 import (
-	"fmt"
+	"errors"
+	"sync"
 	"time"
 )
 
@@ -25,38 +26,71 @@ type Store interface {
 	Commit(token string, b []byte, expiry time.Time) (err error)
 }
 
-type Data struct{
-	data []byte
+type Data struct {
+	data   []byte
 	expiry time.Time
 }
 
-type memoSave struct {
-	data Data
+// type memoSave struct {
+// 	data Data
+// }
+
+// func NewMemoSave() *memoSave {
+// 	return &memoSave{}
+// }
+
+// func (s *memoSave) Delete(token string) (err error) {
+// 	if _, exists := s.session[token]; exists {
+
+// 		delete(s.session, token)
+// 	} else {
+// 		return fmt.Errorf("token doesn't exists")
+// 	}
+// 	return
+// }
+
+// func (s *memoSave) Find(token string) (b []byte, found bool, err error) {
+// 	if value, exists := s.session.Value[token]; exists {
+// 		b = []byte(value)
+// 	} else {
+// 		err = fmt.Errorf("cannot find data")
+// 		return
+// 	}
+
+// 	return b, true, nil
+
+// }
+
+// func (s *memoSave) Commit(token string, b []byte, expiry time.Time) (err error) {
+
+// }
+
+type mapStore struct {
+	Sessions map[string]*Session
+	mu       *sync.RWMutex
+}
+
+func (s *mapStore) Commit(token string, value *Session)  {
+	s.mu.Lock()
+	s.Sessions[token] = value
+	s.mu.Unlock()
 
 }
 
-func (s *memoSave) Delete(token string) (err error) {
-	if _, exists := s.session[token]; exists {
-
-		delete(s.session, token)
-	} else {
-		return fmt.Errorf("token doesn't exists")
-	}
-	return
-}
-
-func (s *memoSave) Find(token string) (b []byte, found bool, err error) {
-	if value, exists := s.session.Value[token]; exists {
-		b = []byte(value)
+func (s *mapStore) find(token string)(*Session,error){
+	if value, exists :=s.Sessions[token]; exists{
+		return value, nil
 	}else{
-		err= fmt.Errorf("cannot find data")
-		return 
+		return nil ,errors.New("invaid session token")
 	}
 
-	return b,true,nil
 
 }
 
-func (s *memoSave) Commit(token string,b []byte,expiry time.Time)(err error){
 
+func mapStoreInit()mapStore{
+	return mapStore{
+		Sessions: make(map[string]*Session),
+		mu: &sync.RWMutex{},
+	}
 }

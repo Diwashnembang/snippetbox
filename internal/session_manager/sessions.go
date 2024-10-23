@@ -18,7 +18,7 @@ type Session struct {
 type SessionManager struct {
 	IdleTimeout time.Duration
 	Lifetime    time.Duration
-	Store       Store
+	Store      	mapStore 
 	Cookie      SessionCookie
 	Codec       Codec
 	ErrorFunc   func(http.ResponseWriter, *http.Request, error)
@@ -55,7 +55,7 @@ func NewSession() *Session {
 	}
 }
 
-func (s *SessionManager)cookie(w http.ResponseWriter,val string,expires time.Time){
+func (s *SessionManager)SetCookie(w http.ResponseWriter,val string,expires time.Time){
 	cookie := &http.Cookie{
 		Name: s.Cookie.Name,
 		Value: val,
@@ -65,5 +65,28 @@ func (s *SessionManager)cookie(w http.ResponseWriter,val string,expires time.Tim
 
 }
 
+func NewSessionManager()*SessionManager{
 
+	return &SessionManager{
+		Cookie: *NewCookie(),
+		Store: mapStoreInit(),
+	}
+}
 
+//adds cookie 
+func (s *SessionManager)addCookieMiddleWare(next http.Handler)http.Handler{
+	return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+		session := NewSession()
+		s.SetCookie(w,session.Token,time.Now().Add(time.Hour * 5))
+		next.ServeHTTP(w,r)
+	})
+}
+
+func NewCookie()*SessionCookie{
+	return &SessionCookie{
+    Name : "sessionId" ,
+	HttpOnly: true ,
+	Persist : true ,
+	}
+
+}

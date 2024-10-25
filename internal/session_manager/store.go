@@ -70,27 +70,29 @@ type mapStore struct {
 	mu       *sync.RWMutex
 }
 
-func (s *mapStore) Commit(token string, value *Session)  {
+func (s *mapStore) Commit(token string, value *Session) {
+	defer s.mu.Unlock()
 	s.mu.Lock()
 	s.Sessions[token] = value
-	s.mu.Unlock()
 
 }
 
-func (s *mapStore) find(token string)(*Session,error){
-	if value, exists :=s.Sessions[token]; exists{
+func (s *mapStore) Find(token string) (*Session, error) {
+	if value, exists := s.Sessions[token]; exists {
 		return value, nil
-	}else{
-		return nil ,errors.New("invaid session token")
+	} else {
+		return nil, errors.New("invaid session token")
 	}
 
-
 }
 
+func (s *mapStore) FindAll() (map[string]*Session, error) {
+	return s.Sessions , nil
+}
 
-func mapStoreInit()mapStore{
+func mapStoreInit() mapStore {
 	return mapStore{
 		Sessions: make(map[string]*Session),
-		mu: &sync.RWMutex{},
+		mu:       &sync.RWMutex{},
 	}
 }

@@ -21,7 +21,7 @@ func main() {
 		SessionMangaer: sm,
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", app.home)
+	mux.Handle("/", app.SessionMangaer.AddCookieMiddleWare(http.HandlerFunc(app.home)))
 	srv := &http.Server{
 		Addr:    *addr,
 		Handler: mux,
@@ -34,11 +34,16 @@ func main() {
 }
 
 func (a *application) home(w http.ResponseWriter, r *http.Request) {
-	slog.Info("innn")
 	if r.Method != http.MethodGet {
 		fmt.Fprintf(w, "use only get")
 		slog.Error("invalid method request")
 		return
 	}
 	w.Write([]byte("hello world"))
+
+	sessions, _ := a.SessionMangaer.Store.FindAll()
+	for key, value := range sessions {
+
+		fmt.Printf("%s:%s \n", key, value.CraetedAt)
+	}
 }

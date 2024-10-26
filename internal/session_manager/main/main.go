@@ -40,10 +40,12 @@ func (a *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write([]byte("hello world"))
-
-	sessions, _ := a.SessionMangaer.Store.FindAll()
-	for key, value := range sessions {
-
-		fmt.Printf("%s:%s \n", key, value.CraetedAt)
+	token, err := r.Cookie("sessionId")
+	if err != nil {
+		fmt.Print("error", err)
 	}
+	a.SessionMangaer.Store.AddSessionValue(token.Value, "authorized", true)
+	value, _ := a.SessionMangaer.Store.GetSessionValue(token.Value, "authorized")
+	fmt.Print(value)
+
 }

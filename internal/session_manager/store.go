@@ -70,10 +70,10 @@ type mapStore struct {
 	mu       *sync.RWMutex
 }
 
-func (s *mapStore) Commit(token string, value *Session) {
-	defer s.mu.Unlock()
+func (s *mapStore) Commit(token string, session *Session) {
 	s.mu.Lock()
-	s.Sessions[token] = value
+	defer s.mu.Unlock()
+	s.Sessions[token] = session
 
 }
 
@@ -87,7 +87,7 @@ func (s *mapStore) Find(token string) (*Session, error) {
 }
 
 func (s *mapStore) FindAll() (map[string]*Session, error) {
-	return s.Sessions , nil
+	return s.Sessions, nil
 }
 
 func mapStoreInit() mapStore {
@@ -95,4 +95,20 @@ func mapStoreInit() mapStore {
 		Sessions: make(map[string]*Session),
 		mu:       &sync.RWMutex{},
 	}
+}
+
+func (s *mapStore) AddSessionValue(token string, key string, value any) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Sessions[token].Value[key] = value
+}
+
+func (s *mapStore) GetSessionValue(token string, key string) (any, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if value, exists := s.Sessions[token].Value[key]; exists {
+		return value, nil
+	}
+	return nil, errors.New("invalid key")
+
 }

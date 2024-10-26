@@ -55,13 +55,14 @@ func NewSession() *Session {
 	}
 }
 
-func (s *SessionManager) SetCookie(w http.ResponseWriter, val string, expires time.Time) {
+func (s *SessionManager) SetCookie(w http.ResponseWriter, val string, expires time.Time) *http.Cookie {
 	cookie := &http.Cookie{
 		Name:    s.Cookie.Name,
 		Value:   val,
 		Expires: expires,
 	}
 	http.SetCookie(w, cookie)
+	return cookie
 
 }
 
@@ -76,17 +77,17 @@ func NewSessionManager() *SessionManager {
 // adds cookie
 func (s *SessionManager) AddCookieMiddleWare(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, err := r.Cookie("sessionId") 
+		_, err := r.Cookie("sessionId")
 		if err != nil {
 
 			session := NewSession()
-			s.SetCookie(w, session.Token, time.Now().Add(time.Hour*5))
+			cookie := s.SetCookie(w, session.Token, time.Now().Add(time.Hour*5))
 			s.Store.Commit(session.Token, session)
-			next.ServeHTTP(w, r)
-		} else {
-
-			next.ServeHTTP(w, r)
+			r.AddCookie(cookie)
 		}
+
+		next.ServeHTTP(w, r)
+
 	})
 }
 

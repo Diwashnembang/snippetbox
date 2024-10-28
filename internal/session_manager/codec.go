@@ -8,3 +8,20 @@ type Codec interface {
 	Encode(deadline time.Time, values map[string]interface{}) ([]byte, error)
 	Decode([]byte) (deadline time.Time, values map[string]interface{}, err error)
 }
+
+
+type DataCoder struct{}
+
+
+func (c *DataCoder) Encode(deadline time.Time, values map[string]interface{}) ([]byte, error){
+	aux:=&struct{
+		Deadline time.Time
+		Values map[string]any
+	}{
+		Deadline: deadline,
+		Values: values,
+	}
+	
+}
+
+

@@ -82,7 +82,7 @@ func (s *SessionManager) AddCookieMiddleWare(next http.Handler) http.Handler {
 
 			session := NewSession()
 			cookie := s.SetCookie(w, session.Token, time.Now().Add(time.Hour*5))
-			s.Store.Commit(session.Token, session)
+			s.Store.Put(session.Token, session)
 			r.AddCookie(cookie)
 		}
 

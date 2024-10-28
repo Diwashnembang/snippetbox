@@ -1,7 +1,10 @@
 package sessionmanager
 
 import (
+	"bytes"
 	"errors"
+	"log/slog/internal/buffer"
+	"os"
 	"sync"
 	"time"
 )
@@ -70,14 +73,14 @@ type mapStore struct {
 	mu       *sync.RWMutex
 }
 
-func (s *mapStore) Commit(token string, session *Session) {
+func (s *mapStore) Put(token string, session *Session) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.Sessions[token] = session
 
 }
 
-func (s *mapStore) Find(token string) (*Session, error) {
+func (s *mapStore) Get(token string) (*Session, error) {
 	if value, exists := s.Sessions[token]; exists {
 		return value, nil
 	} else {
@@ -112,3 +115,21 @@ func (s *mapStore) GetSessionValue(token string, key string) (any, error) {
 	return nil, errors.New("invalid key")
 
 }
+
+func (s *mapStore)Commit(token string, b []byte, expiry time.Time) (err error){
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	file, err:=os.OpenFile("sessins.txt",os.O_APPEND|os.O_CREATE|os.O_RDWR,0664)
+	defer file.Close()
+	if err != nil{
+		return err
+	}
+	buffer :=bytes.NewBuffer(make([]byte, 0,512))
+	_,err =buffer.Write(b)
+	if err != nil{
+		return err
+	}
+	buffer.WriteTo(file)
+
+}
+

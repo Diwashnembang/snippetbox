@@ -1,6 +1,13 @@
 package sessionmanager
 
-import "time"
+import (
+	"bytes"
+	"errors"
+	"log/slog/internal/buffer"
+	"os"
+	"sync"
+	"time"
+)
 
 // Store is the interface for session stores.
 type Store interface {
@@ -21,3 +28,108 @@ type Store interface {
 	// expiry time should be overwritten.
 	Commit(token string, b []byte, expiry time.Time) (err error)
 }
+
+type Data struct {
+	data   []byte
+	expiry time.Time
+}
+
+// type memoSave struct {
+// 	data Data
+// }
+
+// func NewMemoSave() *memoSave {
+// 	return &memoSave{}
+// }
+
+// func (s *memoSave) Delete(token string) (err error) {
+// 	if _, exists := s.session[token]; exists {
+
+// 		delete(s.session, token)
+// 	} else {
+// 		return fmt.Errorf("token doesn't exists")
+// 	}
+// 	return
+// }
+
+// func (s *memoSave) Find(token string) (b []byte, found bool, err error) {
+// 	if value, exists := s.session.Value[token]; exists {
+// 		b = []byte(value)
+// 	} else {
+// 		err = fmt.Errorf("cannot find data")
+// 		return
+// 	}
+
+// 	return b, true, nil
+
+// }
+
+// func (s *memoSave) Commit(token string, b []byte, expiry time.Time) (err error) {
+
+// }
+
+type mapStore struct {
+	Sessions map[string]*Session
+	mu       *sync.RWMutex
+}
+
+func (s *mapStore) Put(token string, session *Session) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Sessions[token] = session
+
+}
+
+func (s *mapStore) Get(token string) (*Session, error) {
+	if value, exists := s.Sessions[token]; exists {
+		return value, nil
+	} else {
+		return nil, errors.New("invaid session token")
+	}
+
+}
+
+func (s *mapStore) FindAll() (map[string]*Session, error) {
+	return s.Sessions, nil
+}
+
+func mapStoreInit() mapStore {
+	return mapStore{
+		Sessions: make(map[string]*Session),
+		mu:       &sync.RWMutex{},
+	}
+}
+
+func (s *mapStore) AddSessionValue(token string, key string, value any) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Sessions[token].Value[key] = value
+}
+
+func (s *mapStore) GetSessionValue(token string, key string) (any, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if value, exists := s.Sessions[token].Value[key]; exists {
+		return value, nil
+	}
+	return nil, errors.New("invalid key")
+
+}
+
+func (s *mapStore)Commit(token string, b []byte, expiry time.Time) (err error){
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	file, err:=os.OpenFile("sessins.txt",os.O_APPEND|os.O_CREATE|os.O_RDWR,0664)
+	defer file.Close()
+	if err != nil{
+		return err
+	}
+	buffer :=bytes.NewBuffer(make([]byte, 0,512))
+	_,err =buffer.Write(b)
+	if err != nil{
+		return err
+	}
+	buffer.WriteTo(file)
+
+}
+

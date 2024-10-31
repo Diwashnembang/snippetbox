@@ -3,21 +3,28 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"log"
 	"log/slog"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var userStmt = `CREATE TABEL users(id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+var userStmt = `CREATE TABLE users(id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
  name VARCHAR(255) NOT NULL,
  email VARCHAR(255) NOT NULL,
  hashed_password CHAR(60) NOT NULL,
  created DATETIME NOT NULL);
- ALTER TABLE users ADD CONSTRAINT users_uc_email UNIQUE (email);
-`
+ `
+var uniqueEmailStmt = "ALTER TABLE users ADD CONSTRAINT users_uc_email UNIQUE (email);"
 
-func createTabel(db *sql.DB, stmt string) {
-	db.Exec(stmt)
+func executeStmts(db *sql.DB, stmts ...string) error {
+	for _, stmt := range stmts {
+		_, err := db.Exec(stmt)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func createConnectionPool(dsn *string) (*sql.DB, error) {
@@ -34,7 +41,7 @@ func createConnectionPool(dsn *string) (*sql.DB, error) {
 }
 
 func main() {
-	dsn := flag.String("dsn", "web:pass@/snippetbox?parseTime=true", "snippetbox web user connection")
+	dsn := flag.String("dsn", "root:root@/snippetbox?parseTime=true", "snippetbox web user connection")
 	flag.Parse()
 
 	DB, err := createConnectionPool(dsn)
@@ -42,6 +49,9 @@ func main() {
 		slog.Error(err.Error())
 	}
 
-	createTabel(DB, userStmt)
+	err = executeStmts(DB, userStmt, uniqueEmailStmt)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }

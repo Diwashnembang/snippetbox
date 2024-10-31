@@ -3,7 +3,6 @@ package sessionmanager
 import (
 	"bytes"
 	"errors"
-	"log/slog/internal/buffer"
 	"os"
 	"sync"
 	"time"
@@ -116,20 +115,20 @@ func (s *mapStore) GetSessionValue(token string, key string) (any, error) {
 
 }
 
-func (s *mapStore)Commit(token string, b []byte, expiry time.Time) (err error){
+func (s *mapStore) Commit(token string, b []byte, expiry time.Time) (err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	file, err:=os.OpenFile("sessins.txt",os.O_APPEND|os.O_CREATE|os.O_RDWR,0664)
-	defer file.Close()
-	if err != nil{
+	file, err := os.OpenFile("sessins.txt", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0664)
+	if err != nil {
 		return err
 	}
-	buffer :=bytes.NewBuffer(make([]byte, 0,512))
-	_,err =buffer.Write(b)
-	if err != nil{
+	defer file.Close()
+	buffer := bytes.NewBuffer(make([]byte, 0, 512))
+	_, err = buffer.Write(b)
+	if err != nil {
 		return err
 	}
 	buffer.WriteTo(file)
+	return nil
 
 }
-

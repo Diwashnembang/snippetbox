@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -100,16 +99,19 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	app.render(w, http.StatusOK, "create.tmpl.html", data)
 }
 
-func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
-
-	data := app.newTemplateDate(r)
-	app.render(w, http.StatusOK, "user.tmpl.html", data)
-}
-
-type userForm struct {
+// Create a new userSignupForm struct.
+type userSignupForm struct {
+	Name                string `form:"name"`
 	Email               string `form:"email"`
 	Password            string `form:"password"`
 	validator.Validator `form:"-"`
+}
+
+func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
+
+	data := app.newTemplateDate(r)
+	data.Form = userSignupForm{}
+	app.render(w, http.StatusOK, "signup.tmpl.html", data)
 }
 
 func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
@@ -118,53 +120,72 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 		app.errrlog.Println(err)
 		return
 	}
-	var form userForm
+	var form userSignupForm
 	err = app.formDecoder.Decode(&form, r.PostForm)
 	if err != nil {
 		app.errrlog.Println(err)
 		return
 	}
+	form.CheckField(validator.IsStringEmpty(form.Name), "name", "name cannot be empty")
 	form.CheckField(validator.IsStringEmpty(form.Email), "email", "email cannot be empty")
 	form.CheckField(validator.IsStringEmpty(form.Password), "password", "password cannot be empty")
+	form.CheckField(!validator.Matches(form.Email, validator.EmailRX), "email", "Enter a valid email")
+	form.CheckField(!validator.MinChars(form.Password, 8), "password", "This field must be at least 8 characters long")
 
 	if form.HasError() {
 		data := app.newTemplateDate(r)
 		data.Form = form
-		app.render(w, http.StatusBadRequest, "", data)
+		app.render(w, http.StatusBadRequest, "signup.tmpl.html", data)
 	}
-	//do some encryppt
 
-	app.snippets.InsertUsers(form.Email, form.Password)
+	err = app.users.Insert(form.Name, form.Email, form.Password)
+	if err != nil {
+		if errors.Is(err, models.ErrDuplicateEmail) {
+			form.AddError("email", "email is already in use")
+			data := app.newTemplateDate(r)
+			data.Form = form
+			app.render(w, http.StatusBadRequest, "signup.tmpl.html", data)
+			return
+
+		} else {
+			app.serverError(w, err)
+		}
+	}
+	app.sessionMangaer.Put(r.Context(), "flash", "your signup was sucessfull")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 
 }
-func (app *application) userLogin(w http.ResponseWriter, r *http.Request)      {
+func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
-	if err != nil{
+	if err != nil {
 		app.errrlog.Println(err)
-		return 
+		return
 	}
-	form := &userForm{}
-	app.formDecoder.Decode(form,r.PostForm)
-	form.CheckField(validator.IsStringEmpty(form.Email),"email","email cannot be empty")
-	form.CheckField(validator.IsStringEmpty(form.Password),"password","password cannot be empty")
-	if form.HasError(){
+	form := &userSignupForm{}
+	app.formDecoder.Decode(form, r.PostForm)
+	form.CheckField(validator.IsStringEmpty(form.Email), "email", "email cannot be empty")
+	form.CheckField(validator.IsStringEmpty(form.Password), "password", "password cannot be empty")
+	if form.HasError() {
 		data := app.newTemplateDate(r)
 		data.Form = form
-		app.render(w,http.StatusBadRequest,"",data)
-		return 
+		app.render(w, http.StatusBadRequest, "", data)
+		return
 	}
-	user,err:=app.snippets.FindUser(form.Email)
-	if err != nil{
-		app.errrlog.Println(err)	
+	// user, err := app.snippets.FindUser(form.Email)
+	if err != nil {
+		app.errrlog.Println(err)
 		return
 	}
 
-	if user.Password == form.Password{
-		app.sessionMangaer.Store.Commit(user.Id,[]byte(user.Email + user.Password),time.Now().Add(8*time.Hour))
-	}
+	if app.sessionMangaer.GetBool(r.Context(), "Authorized") {
 
+	} else {
+		w.Write([]byte("Invalid credientials"))
+
+	}
+}
+func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {}
+
+func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
 
 }
-func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request)  {}
-func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {}

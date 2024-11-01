@@ -107,6 +107,12 @@ type userSignupForm struct {
 	validator.Validator `form:"-"`
 }
 
+type userLoginForn struct {
+	Password            string `form:"password"`
+	Email               string `form:"email"`
+	validator.Validator `form:"_"`
+}
+
 func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
 
 	data := app.newTemplateDate(r)
@@ -161,31 +167,60 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 		app.errrlog.Println(err)
 		return
 	}
-	form := &userSignupForm{}
-	app.formDecoder.Decode(form, r.PostForm)
+	form := &userLoginForn{}
+	err = app.formDecoder.Decode(form, r.PostForm)
+	if err != nil {
+		app.errrlog.Println(err)
+	}
 	form.CheckField(validator.IsStringEmpty(form.Email), "email", "email cannot be empty")
+	form.CheckField(!validator.Matches(form.Email, validator.EmailRX), "email", "Email isn't valid")
 	form.CheckField(validator.IsStringEmpty(form.Password), "password", "password cannot be empty")
 	if form.HasError() {
 		data := app.newTemplateDate(r)
 		data.Form = form
-		app.render(w, http.StatusBadRequest, "", data)
+		app.render(w, http.StatusBadRequest, "login.tmpl.html", data)
 		return
 	}
-	// user, err := app.snippets.FindUser(form.Email)
+	id, err := app.users.Authenticate(form.Email, form.Password)
 	if err != nil {
-		app.errrlog.Println(err)
+		if errors.Is(err, models.ErrInvalidCredentials) {
+
+			form.AddNonFieldErros("invalid credientils")
+			app.errrlog.Println(err)
+			data := app.newTemplateDate(r)
+			data.Form = form
+			app.render(w, http.StatusBadRequest, "login.tmpl.html", data)
+			return
+		} else {
+			app.serverError(w, err)
+		}
 		return
 	}
-
-	if app.sessionMangaer.GetBool(r.Context(), "Authorized") {
-
-	} else {
-		w.Write([]byte("Invalid credientials"))
-
+	message := fmt.Sprintf("Welcome %v", id)
+	err = app.sessionMangaer.RenewToken(r.Context())
+	if err != nil {
+		app.serverError(w, err)
+		return
 	}
+	app.sessionMangaer.Put(r.Context(), "flash", message)
+	app.sessionMangaer.Put(r.Context(), "authenticatedUserId", id)
+	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
+
 }
-func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {}
+func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
+	err := app.sessionMangaer.RenewToken(r.Context())
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+	app.sessionMangaer.Pop(r.Context(), "authenticatedUserId")
+	app.sessionMangaer.Put(r.Context(), "flash", "You Have Sucessfully Loged Out")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+
+}
 
 func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
-
+	data := app.newTemplateDate(r)
+	data.Form = &userLoginForn{}
+	app.render(w, http.StatusOK, "login.tmpl.html", data)
 }

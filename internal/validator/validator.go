@@ -7,12 +7,18 @@ import (
 )
 
 type Validator struct {
-	FieldsErrors map[string]string
+	NonFieldErrors []string
+	FieldsErrors   map[string]string
 }
 
 // return true if fieldError
 func (v *Validator) HasError() bool {
-	return len(v.FieldsErrors) != 0
+	return len(v.FieldsErrors) != 0 && len(v.NonFieldErrors) != 0
+}
+
+// adds messge to the nonfieldErros
+func (v *Validator) AddNonFieldErros(message string) {
+	v.NonFieldErrors = append(v.NonFieldErrors, message)
 }
 
 // add eror
@@ -26,7 +32,7 @@ func (v *Validator) AddError(key string, message string) {
 	}
 }
 
-// check fieldsError
+// add erros if when err it true
 func (v *Validator) CheckField(err bool, key string, message string) {
 	if err {
 		v.AddError(key, message)
